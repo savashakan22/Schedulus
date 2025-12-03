@@ -71,7 +71,7 @@ function App() {
             start: "9:00",
             end: "11:00",
             room: "D101",
-            instructor: "Dr. Ahmet Yılmaz",
+            instructor: "Uzay Çetin",
             isLab: false,
           },
           {
@@ -81,7 +81,7 @@ function App() {
             start: "11:00",
             end: "13:00",
             room: "D121",
-            instructor: "Dr. Ahmet Durmaz",
+            instructor: "Hoca-1",
             isLab: false,
           },
           {
@@ -91,7 +91,7 @@ function App() {
             start: "14:00",
             end: "17:00",
             room: "D103",
-            instructor: "Dr. Ahmet Aymaz",
+            instructor: "Hoca-2",
             isLab: false,
           },
           {
@@ -101,7 +101,7 @@ function App() {
             start: "10:00",
             end: "12:00",
             room: "L201",
-            instructor: "Arş. Gör. Mehmet Koç",
+            instructor: "Hoca-3",
             isLab: true,
           },
           {
@@ -111,7 +111,7 @@ function App() {
             start: "13:00",
             end: "15:00",
             room: "L201",
-            instructor: "Arş. Gör. Mehmet Koç",
+            instructor: "Hoca-3",
             isLab: true,
           },
           {
@@ -121,7 +121,7 @@ function App() {
             start: "09:00",
             end: "11:00",
             room: "D102",
-            instructor: "Dr. Ayşe Demir",
+            instructor: "Damien Berthet",
             isLab: false,
           },
         ],
@@ -137,7 +137,7 @@ function App() {
             start: "09:00",
             end: "12:00",
             room: "D101",
-            instructor: "Dr. Ahmet Yılmaz",
+            instructor: "Hoca-2",
             isLab: false,
           },
           {
@@ -147,7 +147,7 @@ function App() {
             start: "13:00",
             end: "15:00",
             room: "L202",
-            instructor: "Arş. Gör. Mehmet Koç",
+            instructor: "Hoca-3",
             isLab: true,
           },
           {
@@ -157,7 +157,7 @@ function App() {
             start: "13:00",
             end: "15:00",
             room: "D102",
-            instructor: "Dr. Ayşe Demir",
+            instructor: "Hoca-1",
             isLab: false,
           },
         ],

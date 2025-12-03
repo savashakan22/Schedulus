@@ -46,7 +46,7 @@ export default function ClassCalendar({ timetable }) {
           key={dayKey}
           className="bg-slate-900 border border-slate-800 rounded-xl p-3 pb-8"
         >
-          <p className="text-slate-300 font-semibold mb-[15px]">
+          <p className="text-slate-100 font-semibold mb-[15px]">
             {dayLabels[dayKey]}
           </p>
 
