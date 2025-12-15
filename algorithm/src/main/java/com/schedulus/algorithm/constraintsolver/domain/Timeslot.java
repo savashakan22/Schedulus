@@ -8,6 +8,7 @@ public class Timeslot {
     private DayOfWeek dayOfWeek;
     private LocalTime startTime;
     private LocalTime endTime;
+    private int satisfactionScore;
 
     public Timeslot() {
     }
@@ -16,6 +17,11 @@ public class Timeslot {
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;
+    }
+
+    public Timeslot(DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime, int satisfactionScore) {
+        this(dayOfWeek, startTime, endTime);
+        this.satisfactionScore = satisfactionScore;
     }
 
     public DayOfWeek getDayOfWeek() {
@@ -28,6 +34,14 @@ public class Timeslot {
 
     public LocalTime getEndTime() {
         return endTime;
+    }
+
+    public int getSatisfactionScore() {
+        return satisfactionScore;
+    }
+
+    public void setSatisfactionScore(int satisfactionScore) {
+        this.satisfactionScore = satisfactionScore;
     }
 
     @Override

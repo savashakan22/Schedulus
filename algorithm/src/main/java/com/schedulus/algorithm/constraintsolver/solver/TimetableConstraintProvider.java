@@ -16,7 +16,9 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                 roomConflict(constraintFactory),
                 teacherConflict(constraintFactory),
                 studentGroupConflict(constraintFactory),
-                // Soft constraints are only implemented in the timefold-quickstarts code
+                // Soft constraints
+                maximizeSatisfaction(constraintFactory),
+                roomFit(constraintFactory)
         };
     }
 
@@ -52,6 +54,31 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                         Joiners.equal(Lesson::getStudentGroup))
                 .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint("Student group conflict");
+    }
+
+    Constraint maximizeSatisfaction(ConstraintFactory constraintFactory) {
+        // Maximize Satisfaction: If a lesson is assigned to a Timeslot, add Timeslot.satisfactionScore to the total score.
+        return constraintFactory
+                .forEach(Lesson.class)
+                .filter(lesson -> lesson.getTimeslot() != null)
+                .reward(HardSoftScore.ONE_SOFT,
+                        lesson -> lesson.getTimeslot().getSatisfactionScore())
+                .asConstraint("Maximize satisfaction");
+    }
+
+    Constraint roomFit(ConstraintFactory constraintFactory) {
+        // Room Fit: Ensure highly popular courses (high difficultyWeight) get larger rooms.
+        return constraintFactory
+                .forEach(Lesson.class)
+                .filter(lesson -> lesson.getRoom() != null)
+                .reward(HardSoftScore.ONE_SOFT,
+                        // Reward: (Lesson Weight * Room Capacity) / Scaling Factor
+                        // Logic: High weight lesson in large room = Big reward.
+                        // Ideally we want to Penalize small rooms for high weight, but reward works too.
+                        // Let's keep it simple: if Room Capacity >= Difficulty Weight * factor, reward.
+                        // Or just maximize capacity usage.
+                        lesson -> lesson.getDifficultyWeight() * lesson.getRoom().getCapacity())
+                .asConstraint("Room fit");
     }
 
 }
