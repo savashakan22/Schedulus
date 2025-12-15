@@ -1,10 +1,12 @@
 package com.schedulus.algorithm.constraintsolver.domain;
 
+import java.util.Comparator;
+
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 import ai.timefold.solver.core.api.domain.lookup.PlanningId;
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 
-@PlanningEntity
+@PlanningEntity(difficultyComparatorClass = Lesson.DifficultyComparator.class)
 public class Lesson {
 
     @PlanningId
@@ -13,6 +15,7 @@ public class Lesson {
     private String subject;
     private String teacher;
     private String studentGroup;
+    private int difficultyWeight;
 
     @PlanningVariable
     private Timeslot timeslot;
@@ -27,6 +30,11 @@ public class Lesson {
         this.subject = subject;
         this.teacher = teacher;
         this.studentGroup = studentGroup;
+    }
+
+    public Lesson(String id, String subject, String teacher, String studentGroup, int difficultyWeight) {
+        this(id, subject, teacher, studentGroup);
+        this.difficultyWeight = difficultyWeight;
     }
 
     // This constructor is only for tests
@@ -52,6 +60,14 @@ public class Lesson {
         return studentGroup;
     }
 
+    public int getDifficultyWeight() {
+        return difficultyWeight;
+    }
+
+    public void setDifficultyWeight(int difficultyWeight) {
+        this.difficultyWeight = difficultyWeight;
+    }
+
     public Timeslot getTimeslot() {
         return timeslot;
     }
@@ -73,4 +89,12 @@ public class Lesson {
         return subject + "(" + id + ")";
     }
 
+    public static class DifficultyComparator implements Comparator<Lesson> {
+        @Override
+        public int compare(Lesson a, Lesson b) {
+            return Comparator.comparingInt(Lesson::getDifficultyWeight)
+                    .thenComparing(Lesson::getId)
+                    .compare(a, b);
+        }
+    }
 }
