@@ -13,6 +13,17 @@ public class Lesson {
     private String subject;
     private String teacher;
     private String studentGroup;
+    
+    // ML-provided weights for optimization
+    private Double difficultyWeight;    // 0.0 - 1.0, higher = more difficult
+    private Double satisfactionScore;   // 0.0 - 1.0, higher = more satisfying
+    
+    // User-controlled pin (lesson will keep its assigned timeslot/room)
+    private boolean pinned;
+    
+    // Pre-assigned values when pinned
+    private Timeslot pinnedTimeslot;
+    private Room pinnedRoom;
 
     @PlanningVariable
     private Timeslot timeslot;
@@ -27,6 +38,16 @@ public class Lesson {
         this.subject = subject;
         this.teacher = teacher;
         this.studentGroup = studentGroup;
+        this.difficultyWeight = 0.5;  // Default medium difficulty
+        this.satisfactionScore = 0.5; // Default neutral satisfaction
+        this.pinned = false;
+    }
+
+    public Lesson(String id, String subject, String teacher, String studentGroup,
+                  Double difficultyWeight, Double satisfactionScore) {
+        this(id, subject, teacher, studentGroup);
+        this.difficultyWeight = difficultyWeight;
+        this.satisfactionScore = satisfactionScore;
     }
 
     // This constructor is only for tests
@@ -66,6 +87,46 @@ public class Lesson {
 
     public void setRoom(Room room) {
         this.room = room;
+    }
+
+    public Double getDifficultyWeight() {
+        return difficultyWeight;
+    }
+
+    public void setDifficultyWeight(Double difficultyWeight) {
+        this.difficultyWeight = difficultyWeight;
+    }
+
+    public Double getSatisfactionScore() {
+        return satisfactionScore;
+    }
+
+    public void setSatisfactionScore(Double satisfactionScore) {
+        this.satisfactionScore = satisfactionScore;
+    }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public Timeslot getPinnedTimeslot() {
+        return pinnedTimeslot;
+    }
+
+    public void setPinnedTimeslot(Timeslot pinnedTimeslot) {
+        this.pinnedTimeslot = pinnedTimeslot;
+    }
+
+    public Room getPinnedRoom() {
+        return pinnedRoom;
+    }
+
+    public void setPinnedRoom(Room pinnedRoom) {
+        this.pinnedRoom = pinnedRoom;
     }
 
     @Override

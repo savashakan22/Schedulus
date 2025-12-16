@@ -8,6 +8,7 @@ public class Timeslot {
     private DayOfWeek dayOfWeek;
     private LocalTime startTime;
     private LocalTime endTime;
+    private Double preferenceBonus;  // Higher = more preferred (e.g., mornings)
 
     public Timeslot() {
     }
@@ -16,6 +17,34 @@ public class Timeslot {
         this.dayOfWeek = dayOfWeek;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.preferenceBonus = calculateDefaultPreference(startTime);
+    }
+
+    public Timeslot(DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime, Double preferenceBonus) {
+        this.dayOfWeek = dayOfWeek;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.preferenceBonus = preferenceBonus;
+    }
+
+    private Double calculateDefaultPreference(LocalTime startTime) {
+        // Morning slots (8-12) get higher preference
+        int hour = startTime.getHour();
+        if (hour >= 8 && hour < 12) {
+            return 1.0;
+        } else if (hour >= 12 && hour < 14) {
+            return 0.7; // Lunch time - moderate preference
+        } else {
+            return 0.5; // Afternoon - lower preference
+        }
+    }
+
+    public boolean isMorning() {
+        return startTime.getHour() < 12;
+    }
+
+    public boolean isAfternoon() {
+        return startTime.getHour() >= 14;
     }
 
     public DayOfWeek getDayOfWeek() {
@@ -28,6 +57,14 @@ public class Timeslot {
 
     public LocalTime getEndTime() {
         return endTime;
+    }
+
+    public Double getPreferenceBonus() {
+        return preferenceBonus;
+    }
+
+    public void setPreferenceBonus(Double preferenceBonus) {
+        this.preferenceBonus = preferenceBonus;
     }
 
     @Override
