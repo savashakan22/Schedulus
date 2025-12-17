@@ -5,14 +5,17 @@ This is the main entry point for the backend API. It coordinates between
 the frontend, ML Engine, and Algorithm API to provide schedule optimization.
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc
+from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Dict
 import uuid
-import asyncio
 
 from config import get_settings
+from database import get_db, init_db, close_db
+from models import OptimizationJob, JobStatusEnum
 from schemas import (
     OptimizationRequest,
     OptimizationJobResponse,
@@ -24,10 +27,22 @@ from orchestrator import orchestrator
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager for startup and shutdown events."""
+    # Startup
+    await init_db()
+    yield
+    # Shutdown
+    await close_db()
+
+
 app = FastAPI(
     title="Schedulus Main Backend",
     description="API Gateway and Orchestrator for Smart University Course Scheduling",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Configure CORS
@@ -38,9 +53,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# In-memory job storage (use Redis/DB in production)
-jobs: Dict[str, OptimizationJobResponse] = {}
 
 
 @app.get("/", response_model=HealthResponse)
@@ -67,6 +79,7 @@ async def health_check():
 async def start_optimization(
     request: OptimizationRequest,
     background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Start a new schedule optimization job.
@@ -76,64 +89,85 @@ async def start_optimization(
     2. Sends to Algorithm API for solving
     3. Returns job ID for status polling
     """
-    job_id = str(uuid.uuid4())
+    job_id = uuid.uuid4()
     
-    # Create job entry
-    job = OptimizationJobResponse(
+    # Create job in database
+    job = OptimizationJob(
         id=job_id,
-        status=JobStatus.PENDING,
+        status=JobStatusEnum.PENDING,
         progress=0,
-        started_at=datetime.now(),
+        started_at=datetime.utcnow(),
     )
-    jobs[job_id] = job
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
     
     # Run optimization in background
     background_tasks.add_task(
         run_optimization_task,
-        job_id,
+        str(job_id),
         request,
     )
     
-    return job
+    return OptimizationJobResponse(
+        id=str(job.id),
+        status=JobStatus(job.status.value),
+        progress=job.progress,
+        started_at=job.started_at,
+    )
 
 
 async def run_optimization_task(job_id: str, request: OptimizationRequest):
     """Background task to run optimization."""
-    job = jobs.get(job_id)
-    if not job:
-        return
+    from database import async_session_factory
     
-    try:
-        # Update status
-        job.status = JobStatus.RUNNING
-        job.progress = 10
-        
-        # Convert Pydantic models to dicts
-        timeslots = [ts.model_dump() for ts in request.timeslots]
-        rooms = [room.model_dump() for room in request.rooms]
-        lessons = [lesson.model_dump() for lesson in request.lessons]
-        
-        job.progress = 30
-        
-        # Run optimization
-        result = await orchestrator.run_optimization(
-            timeslots=timeslots,
-            rooms=rooms,
-            lessons=lessons,
-        )
-        
-        job.progress = 90
-        
-        # Parse result (convert from Java API format)
-        job.result = parse_timetable_result(result)
-        job.status = JobStatus.COMPLETED
-        job.progress = 100
-        job.completed_at = datetime.now()
-        
-    except Exception as e:
-        job.status = JobStatus.FAILED
-        job.error = str(e)
-        job.completed_at = datetime.now()
+    async with async_session_factory() as db:
+        try:
+            # Get job from database
+            result = await db.execute(
+                select(OptimizationJob).where(OptimizationJob.id == uuid.UUID(job_id))
+            )
+            job = result.scalar_one_or_none()
+            
+            if not job:
+                return
+            
+            # Update status to running
+            job.status = JobStatusEnum.RUNNING
+            job.progress = 10
+            await db.commit()
+            
+            # Convert Pydantic models to dicts
+            timeslots = [ts.model_dump() for ts in request.timeslots]
+            rooms = [room.model_dump() for room in request.rooms]
+            lessons = [lesson.model_dump() for lesson in request.lessons]
+            
+            job.progress = 30
+            await db.commit()
+            
+            # Run optimization
+            optimization_result = await orchestrator.run_optimization(
+                timeslots=timeslots,
+                rooms=rooms,
+                lessons=lessons,
+            )
+            
+            job.progress = 90
+            await db.commit()
+            
+            # Parse and store result
+            timetable_response = parse_timetable_result(optimization_result)
+            job.result = timetable_response.model_dump()
+            job.status = JobStatusEnum.COMPLETED
+            job.progress = 100
+            job.completed_at = datetime.utcnow()
+            await db.commit()
+            
+        except Exception as e:
+            job.status = JobStatusEnum.FAILED
+            job.error = str(e)
+            job.completed_at = datetime.utcnow()
+            await db.commit()
 
 
 def parse_timetable_result(result: dict) -> TimetableResponse:
@@ -211,28 +245,48 @@ def parse_timetable_result(result: dict) -> TimetableResponse:
 
 
 @app.get("/api/schedules/jobs/{job_id}", response_model=OptimizationJobResponse)
-async def get_job_status(job_id: str):
+async def get_job_status(job_id: str, db: AsyncSession = Depends(get_db)):
     """Get the status of an optimization job."""
-    job = jobs.get(job_id)
+    try:
+        job_uuid = uuid.UUID(job_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid job ID format")
+    
+    result = await db.execute(
+        select(OptimizationJob).where(OptimizationJob.id == job_uuid)
+    )
+    job = result.scalar_one_or_none()
+    
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return job
+    
+    return OptimizationJobResponse(
+        id=str(job.id),
+        status=JobStatus(job.status.value),
+        progress=job.progress,
+        started_at=job.started_at,
+        completed_at=job.completed_at,
+        result=TimetableResponse(**job.result) if job.result else None,
+        error=job.error,
+    )
 
 
 @app.get("/api/schedules/latest", response_model=TimetableResponse)
-async def get_latest_schedule():
+async def get_latest_schedule(db: AsyncSession = Depends(get_db)):
     """Get the most recently completed schedule."""
-    completed_jobs = [
-        job for job in jobs.values()
-        if job.status == JobStatus.COMPLETED and job.result
-    ]
+    result = await db.execute(
+        select(OptimizationJob)
+        .where(OptimizationJob.status == JobStatusEnum.COMPLETED)
+        .where(OptimizationJob.result.isnot(None))
+        .order_by(desc(OptimizationJob.completed_at))
+        .limit(1)
+    )
+    job = result.scalar_one_or_none()
     
-    if not completed_jobs:
+    if not job:
         raise HTTPException(status_code=404, detail="No completed schedules found")
     
-    # Sort by completion time and get latest
-    latest = max(completed_jobs, key=lambda j: j.completed_at or datetime.min)
-    return latest.result
+    return TimetableResponse(**job.result)
 
 
 if __name__ == "__main__":
