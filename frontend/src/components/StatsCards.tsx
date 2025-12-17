@@ -1,8 +1,8 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
+
+import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
-import { Timetable } from '../data/mockData';
-import { BarChart3, Users, BookOpen, MapPin, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Timetable } from '../api/types';
+import { Users, BookOpen, MapPin, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface StatsCardsProps {
     timetable: Timetable | undefined;

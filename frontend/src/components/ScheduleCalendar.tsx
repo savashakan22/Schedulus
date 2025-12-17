@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { EventContentArg } from '@fullcalendar/core';
-import { Timetable, Lesson } from '../data/mockData';
+import { Timetable, Lesson } from '../api/types';
 import { getDayNumber, getDifficultyClass } from '../lib/utils';
 import { Pin } from 'lucide-react';
 
@@ -63,7 +63,7 @@ export function ScheduleCalendar({ timetable, isLoading, onEventClick }: Schedul
 
     // Custom event content renderer
     const renderEventContent = (eventInfo: EventContentArg) => {
-        const { lesson, teacher, room, pinned } = eventInfo.event.extendedProps;
+        const { teacher, room, pinned } = eventInfo.event.extendedProps;
 
         return (
             <div className="p-1 text-xs overflow-hidden h-full">

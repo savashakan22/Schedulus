@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScheduleCalendar } from './components/ScheduleCalendar';
 import { OptimizationPanel } from './components/OptimizationPanel';
 import { LessonList } from './components/LessonList';
 import { StatsCards } from './components/StatsCards';
-import { useSchedule, useLessons, useOptimizationWorkflow, useToggleLessonPin, useAddLesson, useRemoveLesson } from './hooks/useSchedule';
-import { Lesson } from './data/mockData';
+import { useSchedule, useLessons, useOptimizationWorkflow, useToggleLessonPin, useAddLesson, useRemoveLesson, Lesson } from './hooks/useSchedule';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/Card';
 import { Badge } from './components/ui/Badge';
 import { Button } from './components/ui/Button';
@@ -72,7 +71,7 @@ function App() {
             {/* Main Content */}
             <main className="container mx-auto px-4 py-6 space-y-6">
                 {/* Stats Section */}
-                <StatsCards timetable={timetable} isLoading={isLoadingSchedule} />
+                <StatsCards timetable={timetable ?? undefined} isLoading={isLoadingSchedule} />
 
                 {/* Main Grid */}
                 <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
@@ -99,7 +98,7 @@ function App() {
                             </div>
                         </div>
                         <ScheduleCalendar
-                            timetable={timetable}
+                            timetable={timetable ?? undefined}
                             isLoading={isLoadingSchedule}
                             onEventClick={handleEventClick}
                         />
@@ -178,14 +177,14 @@ function App() {
 
                             <div className="flex items-center gap-2 pt-2">
                                 <Badge
-                                    variant={selectedLesson.difficultyWeight >= 0.8 ? 'destructive' : selectedLesson.difficultyWeight >= 0.6 ? 'warning' : 'success'}
+                                    variant={(selectedLesson.difficultyWeight ?? 0) >= 0.8 ? 'destructive' : (selectedLesson.difficultyWeight ?? 0) >= 0.6 ? 'warning' : 'success'}
                                 >
                                     <AlertTriangle className="h-3 w-3 mr-1" />
-                                    {getDifficultyLabel(selectedLesson.difficultyWeight)} ({Math.round(selectedLesson.difficultyWeight * 100)}%)
+                                    {getDifficultyLabel(selectedLesson.difficultyWeight)} ({Math.round((selectedLesson.difficultyWeight ?? 0) * 100)}%)
                                 </Badge>
                                 <Badge variant="secondary">
                                     <Smile className="h-3 w-3 mr-1" />
-                                    Satisfaction: {Math.round(selectedLesson.satisfactionScore * 100)}%
+                                    Satisfaction: {Math.round((selectedLesson.satisfactionScore ?? 0) * 100)}%
                                 </Badge>
                             </div>
 

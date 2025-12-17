@@ -22,15 +22,17 @@ export function getDayNumber(day: string): number {
     return days[day] ?? 1;
 }
 
-export function getDifficultyClass(weight: number): string {
-    if (weight >= 0.8) return 'difficulty-high';
-    if (weight >= 0.6) return 'difficulty-medium';
+export function getDifficultyClass(weight: number | undefined): string {
+    const w = weight ?? 0.5;
+    if (w >= 0.8) return 'difficulty-high';
+    if (w >= 0.6) return 'difficulty-medium';
     return 'difficulty-low';
 }
 
-export function getDifficultyLabel(weight: number): string {
-    if (weight >= 0.8) return 'Hard';
-    if (weight >= 0.6) return 'Medium';
+export function getDifficultyLabel(weight: number | undefined): string {
+    const w = weight ?? 0.5;
+    if (w >= 0.8) return 'Hard';
+    if (w >= 0.6) return 'Medium';
     return 'Easy';
 }
 

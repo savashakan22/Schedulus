@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
-import { Lesson } from '../data/mockData';
+import { Lesson } from '../api/types';
 import { getDifficultyLabel } from '../lib/utils';
 import { Pin, PinOff, BookOpen, User, Users, AlertTriangle, Smile, Plus, Trash2, X } from 'lucide-react';
 
@@ -156,7 +156,7 @@ export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRem
                                     </div>
                                     <div className="mt-2 flex items-center gap-2">
                                         <Badge
-                                            variant={lesson.difficultyWeight >= 0.8 ? 'destructive' : lesson.difficultyWeight >= 0.6 ? 'warning' : 'success'}
+                                            variant={(lesson.difficultyWeight ?? 0) >= 0.8 ? 'destructive' : (lesson.difficultyWeight ?? 0) >= 0.6 ? 'warning' : 'success'}
                                             className="text-xs"
                                         >
                                             <AlertTriangle className="h-3 w-3 mr-1" />
@@ -164,7 +164,7 @@ export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRem
                                         </Badge>
                                         <Badge variant="secondary" className="text-xs">
                                             <Smile className="h-3 w-3 mr-1" />
-                                            {Math.round(lesson.satisfactionScore * 100)}%
+                                            {Math.round((lesson.satisfactionScore ?? 0) * 100)}%
                                         </Badge>
                                     </div>
                                 </div>

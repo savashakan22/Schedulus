@@ -1,6 +1,17 @@
+/**
+ * Schedule Hooks
+ * 
+ * React Query hooks for schedule data and optimization workflow.
+ * Uses real API calls to the backend.
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { mockApi, OptimizationJob, Lesson } from '../data/mockData';
 import { useState, useEffect, useCallback } from 'react';
+import * as scheduleApi from '../api/scheduleApi';
+import type { Timetable, OptimizationJob, Lesson } from '../api/types';
+
+// Re-export types for backward compatibility
+export type { Timetable, OptimizationJob, Lesson };
 
 // Query keys
 export const queryKeys = {
@@ -11,36 +22,57 @@ export const queryKeys = {
     job: (id: string) => ['job', id] as const,
 };
 
-// Hook to get current schedule
+/**
+ * Hook to get current schedule from the backend.
+ */
 export function useSchedule() {
     return useQuery({
         queryKey: queryKeys.schedule,
-        queryFn: mockApi.getSchedule,
+        queryFn: async (): Promise<Timetable | null> => {
+            return scheduleApi.getSchedule();
+        },
         refetchInterval: false,
+        // Don't treat null as an error (no schedule yet)
+        retry: (failureCount, error) => {
+            // Don't retry 404s
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { status?: number } };
+                if (axiosError.response?.status === 404) {
+                    return false;
+                }
+            }
+            return failureCount < 2;
+        },
     });
 }
 
-// Hook to get all lessons
+/**
+ * Hook to get all lessons (client-side state).
+ */
 export function useLessons() {
     return useQuery({
         queryKey: queryKeys.lessons,
-        queryFn: mockApi.getLessons,
+        queryFn: scheduleApi.getLessons,
     });
 }
 
-// Hook to start optimization
+/**
+ * Hook to start optimization.
+ */
 export function useStartOptimization() {
     return useMutation({
-        mutationFn: mockApi.startOptimization,
+        mutationFn: scheduleApi.startOptimization,
     });
 }
 
-// Hook to toggle lesson pin
+/**
+ * Hook to toggle lesson pin.
+ */
 export function useToggleLessonPin() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: mockApi.toggleLessonPin,
+        mutationFn: scheduleApi.toggleLessonPin,
         onSuccess: () => {
             // Invalidate both lessons and schedule to get fresh data
             queryClient.invalidateQueries({ queryKey: queryKeys.lessons });
@@ -49,12 +81,14 @@ export function useToggleLessonPin() {
     });
 }
 
-// Hook to add a new lesson
+/**
+ * Hook to add a new lesson.
+ */
 export function useAddLesson() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: mockApi.addLesson,
+        mutationFn: scheduleApi.addLesson,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.lessons });
             queryClient.invalidateQueries({ queryKey: queryKeys.schedule });
@@ -62,12 +96,14 @@ export function useAddLesson() {
     });
 }
 
-// Hook to remove a lesson
+/**
+ * Hook to remove a lesson.
+ */
 export function useRemoveLesson() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: mockApi.removeLesson,
+        mutationFn: scheduleApi.removeLesson,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.lessons });
             queryClient.invalidateQueries({ queryKey: queryKeys.schedule });
@@ -75,7 +111,9 @@ export function useRemoveLesson() {
     });
 }
 
-// Hook to poll optimization job status
+/**
+ * Hook to poll optimization job status.
+ */
 export function useOptimizationJob(jobId: string | null) {
     const [job, setJob] = useState<OptimizationJob | null>(null);
 
@@ -85,27 +123,41 @@ export function useOptimizationJob(jobId: string | null) {
             return;
         }
 
-        const pollInterval = setInterval(async () => {
+        let isCancelled = false;
+        
+        const pollStatus = async () => {
             try {
-                const status = await mockApi.getJobStatus(jobId);
-                setJob(status);
-
-                if (status.status === 'COMPLETED' || status.status === 'FAILED') {
-                    clearInterval(pollInterval);
+                const status = await scheduleApi.getJobStatus(jobId);
+                if (!isCancelled) {
+                    setJob(status);
+                    
+                    // If job is still running, continue polling
+                    if (status.status === 'RUNNING' || status.status === 'PENDING') {
+                        setTimeout(pollStatus, 500);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to get job status:', error);
-                clearInterval(pollInterval);
+                if (!isCancelled) {
+                    setJob(prev => prev ? { ...prev, status: 'FAILED', error: 'Failed to get status' } : null);
+                }
             }
-        }, 200); // Faster polling
+        };
 
-        return () => clearInterval(pollInterval);
+        // Start polling
+        pollStatus();
+
+        return () => {
+            isCancelled = true;
+        };
     }, [jobId]);
 
     return job;
 }
 
-// Hook to manage optimization workflow
+/**
+ * Hook to manage the full optimization workflow.
+ */
 export function useOptimizationWorkflow() {
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
     const startMutation = useStartOptimization();
@@ -113,17 +165,25 @@ export function useOptimizationWorkflow() {
     const queryClient = useQueryClient();
 
     const startOptimization = useCallback(async () => {
-        const result = await startMutation.mutateAsync();
-        setCurrentJobId(result.id);
+        try {
+            const result = await startMutation.mutateAsync();
+            setCurrentJobId(result.id);
+        } catch (error) {
+            console.error('Failed to start optimization:', error);
+        }
     }, [startMutation]);
 
-    // When job completes, invalidate schedule and lessons
+    // When job completes, sync lessons and invalidate queries
     useEffect(() => {
-        if (job?.status === 'COMPLETED') {
+        if (job?.status === 'COMPLETED' && job.result) {
+            // Sync lesson assignments from the result
+            scheduleApi.syncLessonsFromTimetable(job.result);
+            
+            // Invalidate queries to refresh UI
             queryClient.invalidateQueries({ queryKey: queryKeys.schedule });
             queryClient.invalidateQueries({ queryKey: queryKeys.lessons });
         }
-    }, [job?.status, queryClient]);
+    }, [job?.status, job?.result, queryClient]);
 
     const reset = useCallback(() => {
         setCurrentJobId(null);
@@ -136,4 +196,3 @@ export function useOptimizationWorkflow() {
         reset,
     };
 }
-

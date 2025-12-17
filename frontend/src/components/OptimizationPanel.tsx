@@ -1,9 +1,9 @@
-import React from 'react';
+
 import { Button } from './ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Progress } from './ui/Progress';
-import { OptimizationJob } from '../data/mockData';
+import { OptimizationJob } from '../api/types';
 import { Play, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 interface OptimizationPanelProps {
