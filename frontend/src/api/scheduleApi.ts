@@ -46,23 +46,6 @@ const DEFAULT_ROOMS: Room[] = [
     { name: 'Computer Lab', capacity: 25 },
 ];
 
-const DEFAULT_LESSONS: Lesson[] = [
-    { id: 'l1', subject: 'Introduction to Programming', teacher: 'Dr. Smith', studentGroup: 'CS-1', difficultyWeight: 0.7, satisfactionScore: 0.85, pinned: false },
-    { id: 'l2', subject: 'Data Structures', teacher: 'Dr. Johnson', studentGroup: 'CS-2', difficultyWeight: 0.85, satisfactionScore: 0.8, pinned: false },
-    { id: 'l3', subject: 'Algorithms', teacher: 'Dr. Johnson', studentGroup: 'CS-2', difficultyWeight: 0.9, satisfactionScore: 0.75, pinned: false },
-    { id: 'l4', subject: 'Database Systems', teacher: 'Prof. Williams', studentGroup: 'CS-3', difficultyWeight: 0.75, satisfactionScore: 0.88, pinned: false },
-    { id: 'l5', subject: 'Operating Systems', teacher: 'Dr. Brown', studentGroup: 'CS-3', difficultyWeight: 0.82, satisfactionScore: 0.7, pinned: false },
-    { id: 'l6', subject: 'Computer Networks', teacher: 'Dr. Davis', studentGroup: 'CS-3', difficultyWeight: 0.78, satisfactionScore: 0.82, pinned: false },
-    { id: 'l7', subject: 'Linear Algebra', teacher: 'Prof. Miller', studentGroup: 'MATH-1', difficultyWeight: 0.88, satisfactionScore: 0.65, pinned: false },
-    { id: 'l8', subject: 'Calculus II', teacher: 'Prof. Miller', studentGroup: 'MATH-1', difficultyWeight: 0.92, satisfactionScore: 0.6, pinned: false },
-    { id: 'l9', subject: 'Statistics', teacher: 'Dr. Wilson', studentGroup: 'MATH-2', difficultyWeight: 0.72, satisfactionScore: 0.78, pinned: false },
-    { id: 'l10', subject: 'Machine Learning', teacher: 'Dr. Anderson', studentGroup: 'CS-4', difficultyWeight: 0.95, satisfactionScore: 0.92, pinned: false },
-];
-
-// In-memory lesson state for client-side management
-// This persists lessons across optimization runs
-let clientLessons: Lesson[] = [...DEFAULT_LESSONS];
-
 /**
  * Get the latest completed schedule from the backend.
  * Returns null if no schedule exists yet.
@@ -85,13 +68,16 @@ export async function getSchedule(): Promise<Timetable | null> {
 
 /**
  * Start a new optimization job.
- * Uses the current lesson state and default timeslots/rooms.
+ * Fetches current lessons from backend and uses default timeslots/rooms.
  */
 export async function startOptimization(): Promise<OptimizationJob> {
+    // Get lessons from backend
+    const lessons = await getLessons();
+    
     const request: OptimizationRequest = {
         timeslots: DEFAULT_TIMESLOTS,
         rooms: DEFAULT_ROOMS,
-        lessons: clientLessons.map(lesson => ({
+        lessons: lessons.map(lesson => ({
             id: lesson.id,
             subject: lesson.subject,
             teacher: lesson.teacher,
@@ -116,64 +102,46 @@ export async function getJobStatus(jobId: string): Promise<OptimizationJob> {
 }
 
 /**
- * Get all lessons (client-side state).
- * Backend doesn't have a dedicated lessons endpoint, so we manage locally.
+ * Get all lessons from the backend.
  */
 export async function getLessons(): Promise<Lesson[]> {
-    return [...clientLessons];
+    const response = await apiClient.get<Lesson[]>('/lessons');
+    return response.data;
 }
 
 /**
  * Toggle the pinned status of a lesson.
  */
 export async function toggleLessonPin(lessonId: string): Promise<Lesson> {
-    const lessonIndex = clientLessons.findIndex(l => l.id === lessonId);
-    if (lessonIndex === -1) {
-        throw new Error('Lesson not found');
-    }
-    
-    clientLessons[lessonIndex] = {
-        ...clientLessons[lessonIndex],
-        pinned: !clientLessons[lessonIndex].pinned,
-    };
-    
-    return { ...clientLessons[lessonIndex] };
+    const response = await apiClient.patch<Lesson>(`/lessons/${lessonId}/pin`);
+    return response.data;
 }
 
 /**
  * Add a new lesson.
  */
 export async function addLesson(lesson: Omit<Lesson, 'id'>): Promise<Lesson> {
-    const newLesson: Lesson = {
+    const newLesson = {
         ...lesson,
         id: `l${Date.now()}`,
     };
-    clientLessons.push(newLesson);
-    return { ...newLesson };
+    const response = await apiClient.post<Lesson>('/lessons', newLesson);
+    return response.data;
 }
 
 /**
  * Remove a lesson.
  */
 export async function removeLesson(lessonId: string): Promise<void> {
-    clientLessons = clientLessons.filter(l => l.id !== lessonId);
+    await apiClient.delete(`/lessons/${lessonId}`);
 }
 
 /**
  * Update lesson state from a completed optimization result.
- * This syncs the timeslot and room assignments back to client state.
+ * This is now a no-op since lessons are stored on the backend.
  */
-export function syncLessonsFromTimetable(timetable: Timetable): void {
-    for (const scheduledLesson of timetable.lessons) {
-        const clientIndex = clientLessons.findIndex(l => l.id === scheduledLesson.id);
-        if (clientIndex !== -1) {
-            clientLessons[clientIndex] = {
-                ...clientLessons[clientIndex],
-                timeslot: scheduledLesson.timeslot,
-                room: scheduledLesson.room,
-            };
-        }
-    }
+export function syncLessonsFromTimetable(_timetable: Timetable): void {
+    // No-op: lessons are managed by the backend now
 }
 
 /**

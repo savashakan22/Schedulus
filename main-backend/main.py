@@ -15,13 +15,15 @@ import uuid
 
 from config import get_settings
 from database import get_db, init_db, close_db
-from models import OptimizationJob, JobStatusEnum
+from models import OptimizationJob, JobStatusEnum, Lesson
 from schemas import (
     OptimizationRequest,
     OptimizationJobResponse,
     TimetableResponse,
     HealthResponse,
     JobStatus,
+    LessonCreate,
+    LessonResponse,
 )
 from orchestrator import orchestrator
 
@@ -33,6 +35,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager for startup and shutdown events."""
     # Startup
     await init_db()
+    await seed_lessons()
     yield
     # Shutdown
     await close_db()
@@ -287,6 +290,124 @@ async def get_latest_schedule(db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No completed schedules found")
     
     return TimetableResponse(**job.result)
+
+
+# ========== Lessons CRUD ==========
+
+DEFAULT_LESSONS = [
+    {"id": "l1", "subject": "Introduction to Programming", "teacher": "Dr. Smith", "student_group": "CS-1", "difficulty_weight": 0.7, "satisfaction_score": 0.85},
+    {"id": "l2", "subject": "Data Structures", "teacher": "Dr. Johnson", "student_group": "CS-2", "difficulty_weight": 0.85, "satisfaction_score": 0.8},
+    {"id": "l3", "subject": "Algorithms", "teacher": "Dr. Johnson", "student_group": "CS-2", "difficulty_weight": 0.9, "satisfaction_score": 0.75},
+    {"id": "l4", "subject": "Database Systems", "teacher": "Prof. Williams", "student_group": "CS-3", "difficulty_weight": 0.75, "satisfaction_score": 0.88},
+    {"id": "l5", "subject": "Operating Systems", "teacher": "Dr. Brown", "student_group": "CS-3", "difficulty_weight": 0.82, "satisfaction_score": 0.7},
+    {"id": "l6", "subject": "Computer Networks", "teacher": "Dr. Davis", "student_group": "CS-3", "difficulty_weight": 0.78, "satisfaction_score": 0.82},
+    {"id": "l7", "subject": "Linear Algebra", "teacher": "Prof. Miller", "student_group": "MATH-1", "difficulty_weight": 0.88, "satisfaction_score": 0.65},
+    {"id": "l8", "subject": "Calculus II", "teacher": "Prof. Miller", "student_group": "MATH-1", "difficulty_weight": 0.92, "satisfaction_score": 0.6},
+    {"id": "l9", "subject": "Statistics", "teacher": "Dr. Wilson", "student_group": "MATH-2", "difficulty_weight": 0.72, "satisfaction_score": 0.78},
+    {"id": "l10", "subject": "Machine Learning", "teacher": "Dr. Anderson", "student_group": "CS-4", "difficulty_weight": 0.95, "satisfaction_score": 0.92},
+]
+
+
+async def seed_lessons():
+    """Seed default lessons if table is empty."""
+    from database import async_session_factory
+    
+    async with async_session_factory() as db:
+        result = await db.execute(select(Lesson).limit(1))
+        if result.scalar_one_or_none() is None:
+            for lesson_data in DEFAULT_LESSONS:
+                lesson = Lesson(
+                    id=lesson_data["id"],
+                    subject=lesson_data["subject"],
+                    teacher=lesson_data["teacher"],
+                    student_group=lesson_data["student_group"],
+                    difficulty_weight=lesson_data["difficulty_weight"],
+                    satisfaction_score=lesson_data["satisfaction_score"],
+                    pinned=False,
+                )
+                db.add(lesson)
+            await db.commit()
+
+
+@app.get("/api/lessons", response_model=list[LessonResponse])
+async def get_lessons(db: AsyncSession = Depends(get_db)):
+    """Get all lessons."""
+    result = await db.execute(select(Lesson).order_by(Lesson.id))
+    lessons = result.scalars().all()
+    return [LessonResponse(**lesson.to_dict()) for lesson in lessons]
+
+
+@app.post("/api/lessons", response_model=LessonResponse)
+async def create_lesson(lesson_data: LessonCreate, db: AsyncSession = Depends(get_db)):
+    """Create a new lesson."""
+    # Check if ID already exists
+    existing = await db.execute(select(Lesson).where(Lesson.id == lesson_data.id))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Lesson with this ID already exists")
+    
+    lesson = Lesson(
+        id=lesson_data.id,
+        subject=lesson_data.subject,
+        teacher=lesson_data.teacher,
+        student_group=lesson_data.student_group,
+        difficulty_weight=lesson_data.difficulty_weight,
+        satisfaction_score=lesson_data.satisfaction_score,
+        pinned=lesson_data.pinned,
+    )
+    db.add(lesson)
+    await db.commit()
+    await db.refresh(lesson)
+    return LessonResponse(**lesson.to_dict())
+
+
+@app.put("/api/lessons/{lesson_id}", response_model=LessonResponse)
+async def update_lesson(lesson_id: str, lesson_data: LessonCreate, db: AsyncSession = Depends(get_db)):
+    """Update an existing lesson."""
+    result = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
+    lesson = result.scalar_one_or_none()
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    lesson.subject = lesson_data.subject
+    lesson.teacher = lesson_data.teacher
+    lesson.student_group = lesson_data.student_group
+    lesson.difficulty_weight = lesson_data.difficulty_weight
+    lesson.satisfaction_score = lesson_data.satisfaction_score
+    lesson.pinned = lesson_data.pinned
+    
+    await db.commit()
+    await db.refresh(lesson)
+    return LessonResponse(**lesson.to_dict())
+
+
+@app.delete("/api/lessons/{lesson_id}")
+async def delete_lesson(lesson_id: str, db: AsyncSession = Depends(get_db)):
+    """Delete a lesson."""
+    result = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
+    lesson = result.scalar_one_or_none()
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    await db.delete(lesson)
+    await db.commit()
+    return {"message": "Lesson deleted"}
+
+
+@app.patch("/api/lessons/{lesson_id}/pin", response_model=LessonResponse)
+async def toggle_lesson_pin(lesson_id: str, db: AsyncSession = Depends(get_db)):
+    """Toggle the pinned status of a lesson."""
+    result = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
+    lesson = result.scalar_one_or_none()
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    lesson.pinned = not lesson.pinned
+    await db.commit()
+    await db.refresh(lesson)
+    return LessonResponse(**lesson.to_dict())
 
 
 if __name__ == "__main__":
