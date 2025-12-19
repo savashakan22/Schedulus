@@ -99,16 +99,28 @@
 }
 
 /* Lesson Type Colors */
-.fc-event.difficulty-high {
+.fc-event.class-color-emerald {
+  @apply bg-gradient-to-r from-emerald-500 to-green-500;
+}
+
+.fc-event.class-color-sky {
+  @apply bg-gradient-to-r from-sky-500 to-blue-500;
+}
+
+.fc-event.class-color-amber {
+  @apply bg-gradient-to-r from-amber-400 to-orange-500;
+}
+
+.fc-event.class-color-violet {
+  @apply bg-gradient-to-r from-violet-500 to-purple-500;
+}
+
+.fc-event.class-color-rose {
   @apply bg-gradient-to-r from-rose-500 to-pink-500;
 }
 
-.fc-event.difficulty-medium {
-  @apply bg-gradient-to-r from-amber-500 to-orange-500;
-}
-
-.fc-event.difficulty-low {
-  @apply bg-gradient-to-r from-emerald-500 to-teal-500;
+.fc-event.class-color-lime {
+  @apply bg-gradient-to-r from-lime-400 to-green-500;
 }
 
 .fc-event.pinned {

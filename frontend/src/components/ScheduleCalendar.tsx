@@ -4,16 +4,19 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { EventContentArg } from '@fullcalendar/core';
 import { Timetable, Lesson } from '../api/types';
-import { getDayNumber, getDifficultyClass } from '../lib/utils';
+import { getDayLabel, getDayNumber, formatTimeFromDate, getClassColorClass } from '../lib/utils';
 import { Pin } from 'lucide-react';
+import { Timeslot } from '../api/types';
 
 interface ScheduleCalendarProps {
     timetable: Timetable | undefined;
     isLoading: boolean;
     onEventClick?: (lesson: Lesson) => void;
+    onEventDrop?: (lesson: Lesson, timeslot: Timeslot) => void;
+    allowDrag?: boolean;
 }
 
-export function ScheduleCalendar({ timetable, isLoading, onEventClick }: ScheduleCalendarProps) {
+export function ScheduleCalendar({ timetable, isLoading, onEventClick, onEventDrop, allowDrag = false }: ScheduleCalendarProps) {
     // Convert lessons to FullCalendar events
     const events = useMemo(() => {
         if (!timetable?.lessons) return [];
@@ -55,7 +58,7 @@ export function ScheduleCalendar({ timetable, isLoading, onEventClick }: Schedul
                         pinned: lesson.pinned,
                     },
                     classNames: [
-                        getDifficultyClass(lesson.difficultyWeight),
+                        getClassColorClass(lesson.studentGroup),
                         lesson.pinned ? 'pinned' : '',
                     ],
                 };
@@ -103,6 +106,29 @@ export function ScheduleCalendar({ timetable, isLoading, onEventClick }: Schedul
                 eventClick={(info) => {
                     const lesson = info.event.extendedProps.lesson as Lesson;
                     onEventClick?.(lesson);
+                }}
+                editable={allowDrag}
+                eventStartEditable={allowDrag}
+                eventDurationEditable={allowDrag}
+                eventDrop={(info) => {
+                    if (!allowDrag) {
+                        info.revert();
+                        return;
+                    }
+
+                    const lesson = info.event.extendedProps.lesson as Lesson;
+                    const startDate = info.event.start ?? info.oldEvent.start;
+                    const endDate = info.event.end ?? info.oldEvent.end ?? info.event.start;
+
+                    if (!startDate || !endDate) return;
+
+                    const timeslot: Timeslot = {
+                        dayOfWeek: getDayLabel(startDate),
+                        startTime: formatTimeFromDate(startDate),
+                        endTime: formatTimeFromDate(endDate),
+                    };
+
+                    onEventDrop?.(lesson, timeslot);
                 }}
                 slotMinTime="08:00:00"
                 slotMaxTime="18:00:00"

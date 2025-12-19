@@ -135,6 +135,8 @@ export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRem
                                 className="flex-1 px-3 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                                 required
                             />
+                        </div>
+                        <div className='flex gap-2'>
                             <input
                                 type="text"
                                 placeholder="Group"

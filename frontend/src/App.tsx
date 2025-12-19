@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScheduleCalendar } from './components/ScheduleCalendar';
 import { OptimizationPanel } from './components/OptimizationPanel';
 import { LessonList } from './components/LessonList';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './components/ui/Card';
 import { Badge } from './components/ui/Badge';
 import { Button } from './components/ui/Button';
 import { Calendar, GraduationCap, X, Pin, User, Users, MapPin, AlertTriangle, Smile, LogIn } from 'lucide-react';
-import { getDifficultyLabel } from './lib/utils';
+import { getClassColorClass, getDifficultyLabel } from './lib/utils';
 import { Login } from './components/Login';
 
 function App() {
@@ -21,6 +21,8 @@ function App() {
 
     const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
     const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
+    const [localTimetable, setLocalTimetable] = useState<typeof timetable>(null);
+    const [hasLocalEdits, setHasLocalEdits] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => Boolean(localStorage.getItem('demo-auth')));
 
     const handleLoginSuccess = () => {
@@ -53,6 +55,36 @@ function App() {
         () => Array.from(new Set((lessons ?? []).map(l => l.studentGroup))),
         [lessons]
     );
+
+    // Keep a local editable copy of the timetable for drag-and-drop changes
+    useEffect(() => {
+        if (!hasLocalEdits) {
+            setLocalTimetable(timetable ?? null);
+        }
+    }, [timetable, hasLocalEdits]);
+
+    const handleEventDrop = (lesson: Lesson, timeslotUpdate: { dayOfWeek: string; startTime: string; endTime: string }) => {
+        setLocalTimetable(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                lessons: prev.lessons.map(l =>
+                    l.id === lesson.id
+                        ? {
+                            ...l,
+                            timeslot: {
+                                ...(l.timeslot ?? {}),
+                                dayOfWeek: timeslotUpdate.dayOfWeek,
+                                startTime: timeslotUpdate.startTime,
+                                endTime: timeslotUpdate.endTime,
+                            },
+                        }
+                        : l
+                ),
+            };
+        });
+        setHasLocalEdits(true);
+    };
 
     if (!isAuthenticated) {
         return (
@@ -91,9 +123,9 @@ function App() {
                 <StatsCards timetable={timetable ?? undefined} isLoading={isLoadingSchedule} />
 
                 {/* Main Grid */}
-                <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
                     {/* Calendar Section */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 min-w-0">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -119,48 +151,48 @@ function App() {
                                     ))}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 text-xs">
-                                <div className="flex items-center gap-1">
-                                    <div className="w-3 h-3 rounded bg-gradient-to-r from-emerald-500 to-teal-500" />
-                                    <span className="text-muted-foreground">Easy</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <div className="w-3 h-3 rounded bg-gradient-to-r from-amber-500 to-orange-500" />
-                                    <span className="text-muted-foreground">Medium</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <div className="w-3 h-3 rounded bg-gradient-to-r from-rose-500 to-pink-500" />
-                                    <span className="text-muted-foreground">Hard</span>
-                                </div>
+                            <div className="flex items-center gap-2 text-xs flex-wrap">
+                                {['ALL', ...lessonGroups].map(group => (
+                                    <div key={group} className="flex items-center gap-1">
+                                        <div className={`w-3 h-3 rounded ${getClassColorClass(group === 'ALL' ? 'ALL' : group)}`} />
+                                        <span className="text-muted-foreground">{group === 'ALL' ? 'All Classes' : group}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                         <ScheduleCalendar
-                            timetable={timetable ? {
-                                ...timetable,
+                            timetable={(localTimetable ?? timetable) ? {
+                                ...(localTimetable ?? timetable)!,
                                 lessons: selectedGroup === 'ALL'
-                                    ? timetable.lessons
-                                    : timetable.lessons.filter(lesson => lesson.studentGroup === selectedGroup),
+                                    ? (localTimetable ?? timetable)!.lessons
+                                    : (localTimetable ?? timetable)!.lessons.filter(lesson => lesson.studentGroup === selectedGroup),
                             } : undefined}
                             isLoading={isLoadingSchedule}
                             onEventClick={handleEventClick}
+                            onEventDrop={handleEventDrop}
+                            allowDrag={selectedGroup !== 'ALL'}
                         />
                     </div>
 
                     {/* Sidebar */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 min-w-0 overflow-hidden">
                         <OptimizationPanel
                             job={job}
                             isStarting={isStarting}
                             onStartOptimization={() => startOptimization()}
                             onReset={reset}
                         />
-                        <LessonList
-                            lessons={lessons}
-                            isLoading={isLoadingLessons}
-                            onTogglePin={handleTogglePin}
-                            onAddLesson={handleAddLesson}
-                            onRemoveLesson={handleRemoveLesson}
-                        />
+
+                        {/* LessonList taşıyorsa dışarı taşmasını engelle */}
+                        <div className="min-w-0 overflow-hidden">
+                            <LessonList
+                                lessons={lessons}
+                                isLoading={isLoadingLessons}
+                                onTogglePin={handleTogglePin}
+                                onAddLesson={handleAddLesson}
+                                onRemoveLesson={handleRemoveLesson}
+                            />
+                        </div>
                     </div>
                 </div>
             </main>
@@ -168,8 +200,8 @@ function App() {
             {/* Lesson Detail Modal */}
             {selectedLesson && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={() => setSelectedLesson(null)}
+                    className="w-full max-w-md m-4 overflow-hidden max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95"
+                    onClick={e => e.stopPropagation()}
                 >
                     <Card
                         className="w-full max-w-md m-4 animate-in fade-in zoom-in-95"
@@ -189,15 +221,25 @@ function App() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-3">
-                                <div className="flex items-center gap-3 text-sm">
-                                    <User className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-muted-foreground">Teacher:</span>
-                                    <span className="font-medium">{selectedLesson.teacher}</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm">
-                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-muted-foreground">Group:</span>
-                                    <span className="font-medium">{selectedLesson.studentGroup}</span>
+                               <div className="space-y-3">
+                                  <div className="text-sm">
+                                    <div className="flex items-center gap-3 text-muted-foreground">
+                                      <User className="h-4 w-4 shrink-0" />
+                                      <span className="shrink-0">Teacher:</span>
+                                    </div>
+                                    <div className="pl-7 font-medium whitespace-normal break-all">
+                                      {selectedLesson.teacher}
+                                    </div>
+                                  </div>
+                                  <div className="text-sm">
+                                    <div className="flex items-center gap-3 text-muted-foreground">
+                                      <Users className="h-4 w-4 shrink-0" />
+                                      <span className="shrink-0">Group:</span>
+                                    </div>
+                                    <div className="pl-7 font-medium whitespace-normal break-all">
+                                      {selectedLesson.studentGroup}
+                                    </div>
+                                  </div>
                                 </div>
                                 {selectedLesson.room && (
                                     <div className="flex items-center gap-3 text-sm">

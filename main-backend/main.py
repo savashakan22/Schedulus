@@ -32,18 +32,7 @@ from orchestrator import orchestrator
 settings = get_settings()
 
 # Seed data for initial lessons (used during app startup)
-DEFAULT_LESSONS = [
-    {"id": "l1", "subject": "Introduction to Programming", "teacher": "Dr. Smith", "student_group": "CS-1", "difficulty_weight": 0.7, "satisfaction_score": 0.85, "duration_hours": 2},
-    {"id": "l2", "subject": "Data Structures", "teacher": "Dr. Johnson", "student_group": "CS-2", "difficulty_weight": 0.85, "satisfaction_score": 0.8, "duration_hours": 3},
-    {"id": "l3", "subject": "Algorithms", "teacher": "Dr. Johnson", "student_group": "CS-2", "difficulty_weight": 0.9, "satisfaction_score": 0.75, "duration_hours": 3},
-    {"id": "l4", "subject": "Database Systems", "teacher": "Prof. Williams", "student_group": "CS-3", "difficulty_weight": 0.75, "satisfaction_score": 0.88, "duration_hours": 2},
-    {"id": "l5", "subject": "Operating Systems", "teacher": "Dr. Brown", "student_group": "CS-3", "difficulty_weight": 0.82, "satisfaction_score": 0.7, "duration_hours": 2},
-    {"id": "l6", "subject": "Computer Networks", "teacher": "Dr. Davis", "student_group": "CS-3", "difficulty_weight": 0.78, "satisfaction_score": 0.82, "duration_hours": 2},
-    {"id": "l7", "subject": "Linear Algebra", "teacher": "Prof. Miller", "student_group": "MATH-1", "difficulty_weight": 0.88, "satisfaction_score": 0.65, "duration_hours": 2},
-    {"id": "l8", "subject": "Calculus II", "teacher": "Prof. Miller", "student_group": "MATH-1", "difficulty_weight": 0.92, "satisfaction_score": 0.6, "duration_hours": 3},
-    {"id": "l9", "subject": "Statistics", "teacher": "Dr. Wilson", "student_group": "MATH-2", "difficulty_weight": 0.72, "satisfaction_score": 0.78, "duration_hours": 2},
-    {"id": "l10", "subject": "Machine Learning", "teacher": "Dr. Anderson", "student_group": "CS-4", "difficulty_weight": 0.95, "satisfaction_score": 0.92, "duration_hours": 3},
-]
+DEFAULT_LESSONS = [ ]
 
 
 @asynccontextmanager
