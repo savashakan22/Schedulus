@@ -153,6 +153,19 @@ export async function removeLesson(lessonId: string): Promise<void> {
 }
 
 /**
+ * Import lessons from CSV.
+ */
+export async function importLessons(file: File): Promise<Lesson[]> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await apiClient.post<Lesson[]>('/lessons/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+}
+
+/**
  * Update lesson state from a completed optimization result.
  * This is now a no-op since lessons are stored on the backend.
  */

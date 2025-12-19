@@ -4,7 +4,8 @@ import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { Lesson } from '../api/types';
 import { getDifficultyLabel } from '../lib/utils';
-import { Pin, PinOff, BookOpen, User, Users, AlertTriangle, Smile, Plus, Trash2, X } from 'lucide-react';
+import { Pin, PinOff, BookOpen, User, Users, AlertTriangle, Smile, Plus, Trash2, X, Upload } from 'lucide-react';
+import { useImportLessons } from '../hooks/useSchedule';
 
 interface LessonListProps {
     lessons: Lesson[] | undefined;
@@ -16,6 +17,7 @@ interface LessonListProps {
 
 export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRemoveLesson }: LessonListProps) {
     const [showAddForm, setShowAddForm] = useState(false);
+    const [showImport, setShowImport] = useState(false);
     const [newLesson, setNewLesson] = useState({
         subject: '',
         teacher: '',
@@ -24,6 +26,7 @@ export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRem
         difficultyWeight: 0.5,
         satisfactionScore: 0.7,
     });
+    const importLessons = useImportLessons();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,10 +81,38 @@ export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRem
                                 {showAddForm ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
                             </Button>
                         )}
+                        <Button
+                            variant={showImport ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() => setShowImport(!showImport)}
+                            className="h-7 px-2"
+                        >
+                            <Upload className="h-3 w-3 mr-1" /> CSV
+                        </Button>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto">
+                {/* CSV Import Accordion */}
+                {showImport && (
+                    <div className="mb-4 rounded-lg border border-dashed border-border p-3 space-y-3 bg-muted/30">
+                        <p className="text-xs text-muted-foreground">Upload a CSV with columns: id, subject, teacher, student_group, duration_hours, difficulty_weight, satisfaction_score.</p>
+                        <input
+                            type="file"
+                            accept=".csv"
+                            onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    importLessons.mutate(file);
+                                    e.target.value = '';
+                                }
+                            }}
+                            className="w-full text-sm"
+                        />
+                        {importLessons.isPending && <p className="text-xs text-muted-foreground">Importing...</p>}
+                        {importLessons.error && <p className="text-xs text-destructive">Failed to import. Please check the file.</p>}
+                    </div>
+                )}
                 {/* Add Course Form */}
                 {showAddForm && (
                     <form onSubmit={handleSubmit} className="mb-4 p-3 rounded-lg border border-primary/50 bg-primary/5 space-y-3">

@@ -5,13 +5,15 @@ This is the main entry point for the backend API. It coordinates between
 the frontend, ML Engine, and Algorithm API to provide schedule optimization.
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from contextlib import asynccontextmanager
 from datetime import datetime
 import uuid
+import csv
+import io
 
 from config import get_settings
 from database import get_db, init_db, close_db
@@ -387,6 +389,7 @@ async def update_lesson(lesson_id: str, lesson_data: LessonCreate, db: AsyncSess
 @app.delete("/api/lessons/{lesson_id}")
 async def delete_lesson(lesson_id: str, db: AsyncSession = Depends(get_db)):
     """Delete a lesson."""
+    # Remove lesson
     result = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
     lesson = result.scalar_one_or_none()
     
@@ -395,6 +398,21 @@ async def delete_lesson(lesson_id: str, db: AsyncSession = Depends(get_db)):
     
     await db.delete(lesson)
     await db.commit()
+    
+    # Also remove any scheduled occurrences of the lesson in the latest timetable
+    # by marking the latest completed job result to exclude the deleted lesson.
+    job_result = await db.execute(
+        select(OptimizationJob)
+        .where(OptimizationJob.status == JobStatusEnum.COMPLETED)
+        .where(OptimizationJob.result.isnot(None))
+        .order_by(desc(OptimizationJob.completed_at))
+        .limit(1)
+    )
+    latest_job = job_result.scalar_one_or_none()
+    if latest_job and latest_job.result and latest_job.result.get("lessons"):
+        latest_job.result["lessons"] = [l for l in latest_job.result["lessons"] if l.get("id") != lesson_id]
+        await db.commit()
+    
     return {"message": "Lesson deleted"}
 
 
@@ -411,6 +429,56 @@ async def toggle_lesson_pin(lesson_id: str, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(lesson)
     return LessonResponse(**lesson.to_dict())
+
+
+@app.post("/api/lessons/import", response_model=list[LessonResponse])
+async def import_lessons(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
+    """Import lessons from a CSV file.
+    Expected headers: id,subject,teacher,student_group,duration_hours,difficulty_weight,satisfaction_score
+    """
+    content = await file.read()
+    decoded = content.decode("utf-8")
+    reader = csv.DictReader(io.StringIO(decoded))
+
+    imported_lessons: list[LessonResponse] = []
+    for row in reader:
+        lesson_id = row.get("id") or f"l{int(datetime.utcnow().timestamp()*1000)}"
+        # Upsert: delete existing lesson with same id to keep data fresh
+        existing = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
+        existing_lesson = existing.scalar_one_or_none()
+        if existing_lesson:
+            await db.delete(existing_lesson)
+            await db.commit()
+
+        lesson = Lesson(
+            id=lesson_id,
+            subject=row.get("subject", "Untitled"),
+            teacher=row.get("teacher", "Unknown"),
+            student_group=row.get("student_group", ""),
+            duration_hours=int(row.get("duration_hours") or 2),
+            difficulty_weight=float(row.get("difficulty_weight") or 0.5),
+            satisfaction_score=float(row.get("satisfaction_score") or 0.5),
+            pinned=False,
+        )
+        db.add(lesson)
+        await db.commit()
+        await db.refresh(lesson)
+        imported_lessons.append(LessonResponse(**lesson.to_dict()))
+
+    # Invalidate latest timetable since lessons changed
+    latest_job_result = await db.execute(
+        select(OptimizationJob)
+        .where(OptimizationJob.status == JobStatusEnum.COMPLETED)
+        .order_by(desc(OptimizationJob.completed_at))
+        .limit(1)
+    )
+    latest_job = latest_job_result.scalar_one_or_none()
+    if latest_job:
+        latest_job.result = None
+        latest_job.score = None if hasattr(latest_job, "score") else None  # safeguard
+        await db.commit()
+
+    return imported_lessons
 
 
 if __name__ == "__main__":

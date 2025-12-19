@@ -17,6 +17,7 @@ export type { Timetable, OptimizationJob, Lesson };
 export const queryKeys = {
     schedule: ['schedule'] as const,
     lessons: ['lessons'] as const,
+    importLessons: ['importLessons'] as const,
     rooms: ['rooms'] as const,
     timeslots: ['timeslots'] as const,
     job: (id: string) => ['job', id] as const,
@@ -89,6 +90,21 @@ export function useAddLesson() {
 
     return useMutation({
         mutationFn: scheduleApi.addLesson,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.lessons });
+            queryClient.invalidateQueries({ queryKey: queryKeys.schedule });
+        },
+    });
+}
+
+/**
+ * Hook to import lessons via CSV upload.
+ */
+export function useImportLessons() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: scheduleApi.importLessons,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.lessons });
             queryClient.invalidateQueries({ queryKey: queryKeys.schedule });

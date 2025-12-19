@@ -9,6 +9,7 @@ import { Badge } from './components/ui/Badge';
 import { Button } from './components/ui/Button';
 import { Calendar, Sparkles, GraduationCap, X, Pin, User, Users, MapPin, AlertTriangle, Smile } from 'lucide-react';
 import { getDifficultyLabel } from './lib/utils';
+import { Login } from './components/Login';
 
 function App() {
     const { data: timetable, isLoading: isLoadingSchedule } = useSchedule();
@@ -43,6 +44,10 @@ function App() {
             setSelectedLesson(null);
         }
     };
+
+    if (!localStorage.getItem('demo-auth')) {
+        return <Login />;
+    }
 
     return (
         <div className="min-h-screen bg-background">
