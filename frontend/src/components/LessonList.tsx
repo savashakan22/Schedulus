@@ -87,19 +87,19 @@ export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRem
                             onClick={() => setShowImport(!showImport)}
                             className="h-7 px-2"
                         >
-                            <Upload className="h-3 w-3 mr-1" /> CSV
+                            <Upload className="h-3 w-3 mr-1" /> XLSX
                         </Button>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto">
-                {/* CSV Import Accordion */}
+                {/* XLSX Import Accordion */}
                 {showImport && (
                     <div className="mb-4 rounded-lg border border-dashed border-border p-3 space-y-3 bg-muted/30">
-                        <p className="text-xs text-muted-foreground">Upload a CSV with columns: id, subject, teacher, student_group, duration_hours, difficulty_weight, satisfaction_score.</p>
+                        <p className="text-xs text-muted-foreground">Upload an XLSX file with columns: id (optional), subject, teacher, student_group, duration_hours, difficulty_weight, satisfaction_score.</p>
                         <input
                             type="file"
-                            accept=".csv"
+                            accept=".xlsx"
                             onChange={e => {
                                 const file = e.target.files?.[0];
                                 if (file) {

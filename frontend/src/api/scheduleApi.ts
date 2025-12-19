@@ -153,7 +153,7 @@ export async function removeLesson(lessonId: string): Promise<void> {
 }
 
 /**
- * Import lessons from CSV.
+ * Import lessons from XLSX.
  */
 export async function importLessons(file: File): Promise<Lesson[]> {
     const formData = new FormData();

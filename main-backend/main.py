@@ -12,8 +12,8 @@ from sqlalchemy import select, desc
 from contextlib import asynccontextmanager
 from datetime import datetime
 import uuid
-import csv
 import io
+from openpyxl import load_workbook
 
 from config import get_settings
 from database import get_db, init_db, close_db
@@ -433,16 +433,61 @@ async def toggle_lesson_pin(lesson_id: str, db: AsyncSession = Depends(get_db)):
 
 @app.post("/api/lessons/import", response_model=list[LessonResponse])
 async def import_lessons(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)):
-    """Import lessons from a CSV file.
-    Expected headers: id,subject,teacher,student_group,duration_hours,difficulty_weight,satisfaction_score
+    """Import lessons from an XLSX file.
+    Expected headers: id (optional),subject,teacher,student_group,duration_hours,difficulty_weight,satisfaction_score
     """
     content = await file.read()
-    decoded = content.decode("utf-8")
-    reader = csv.DictReader(io.StringIO(decoded))
+
+    try:
+        workbook = load_workbook(io.BytesIO(content), data_only=True)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid XLSX file")
+
+    sheet = workbook.active
+    rows = list(sheet.iter_rows(values_only=True))
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="XLSX file is empty")
+
+    header_row = rows[0]
+    headers = {str(col).strip().lower(): idx for idx, col in enumerate(header_row) if col}
+    required_headers = {"subject", "teacher", "student_group", "duration_hours", "difficulty_weight", "satisfaction_score"}
+    if not required_headers.issubset(headers.keys()):
+        missing = required_headers - set(headers.keys())
+        raise HTTPException(status_code=400, detail=f"Missing required columns: {', '.join(sorted(missing))}")
 
     imported_lessons: list[LessonResponse] = []
-    for row in reader:
-        lesson_id = row.get("id") or f"l{int(datetime.utcnow().timestamp()*1000)}"
+    for row in rows[1:]:
+        if not row or all(cell is None for cell in row):
+            continue
+
+        def get_value(column: str, default=None):
+            idx = headers.get(column)
+            if idx is None or idx >= len(row):
+                return default
+            return row[idx] if row[idx] is not None else default
+
+        def normalize_id(value):
+            if value is None:
+                return None
+            if isinstance(value, float) and value.is_integer():
+                value = int(value)
+            text = str(value).strip()
+            return text or None
+
+        def to_int(value, default: int) -> int:
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return default
+
+        def to_float(value, default: float) -> float:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        lesson_id = normalize_id(get_value("id")) or f"l{uuid.uuid4().hex}"
         # Upsert: delete existing lesson with same id to keep data fresh
         existing = await db.execute(select(Lesson).where(Lesson.id == lesson_id))
         existing_lesson = existing.scalar_one_or_none()
@@ -452,12 +497,12 @@ async def import_lessons(file: UploadFile = File(...), db: AsyncSession = Depend
 
         lesson = Lesson(
             id=lesson_id,
-            subject=row.get("subject", "Untitled"),
-            teacher=row.get("teacher", "Unknown"),
-            student_group=row.get("student_group", ""),
-            duration_hours=int(row.get("duration_hours") or 2),
-            difficulty_weight=float(row.get("difficulty_weight") or 0.5),
-            satisfaction_score=float(row.get("satisfaction_score") or 0.5),
+            subject=str(get_value("subject", "Untitled")),
+            teacher=str(get_value("teacher", "Unknown")),
+            student_group=str(get_value("student_group", "")),
+            duration_hours=to_int(get_value("duration_hours"), 2),
+            difficulty_weight=to_float(get_value("difficulty_weight"), 0.5),
+            satisfaction_score=to_float(get_value("satisfaction_score"), 0.5),
             pinned=False,
         )
         db.add(lesson)

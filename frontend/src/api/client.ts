@@ -94,6 +94,11 @@ apiClient.interceptors.response.use(
 // Request interceptor - transform camelCase to snake_case
 apiClient.interceptors.request.use(
     (config) => {
+        // Do not transform multipart/form-data payloads (e.g., file uploads)
+        if (config.data instanceof FormData) {
+            return config;
+        }
+
         if (config.data) {
             config.data = transformKeysToSnake(config.data);
         }

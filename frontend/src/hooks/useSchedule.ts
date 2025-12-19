@@ -98,7 +98,7 @@ export function useAddLesson() {
 }
 
 /**
- * Hook to import lessons via CSV upload.
+ * Hook to import lessons via XLSX upload.
  */
 export function useImportLessons() {
     const queryClient = useQueryClient();
