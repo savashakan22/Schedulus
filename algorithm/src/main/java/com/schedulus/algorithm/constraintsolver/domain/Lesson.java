@@ -13,6 +13,18 @@ public class Lesson {
     private String subject;
     private String teacher;
     private String studentGroup;
+    private Integer durationHours;
+    
+    // ML-provided weights for optimization
+    private Double difficultyWeight;    // 0.0 - 1.0, higher = more difficult
+    private Double satisfactionScore;   // 0.0 - 1.0, higher = more satisfying
+    
+    // User-controlled pin (lesson will keep its assigned timeslot/room)
+    private boolean pinned;
+    
+    // Pre-assigned values when pinned
+    private Timeslot pinnedTimeslot;
+    private Room pinnedRoom;
 
     @PlanningVariable
     private Timeslot timeslot;
@@ -27,6 +39,18 @@ public class Lesson {
         this.subject = subject;
         this.teacher = teacher;
         this.studentGroup = studentGroup;
+        this.durationHours = 2;
+        this.difficultyWeight = 0.5;  // Default medium difficulty
+        this.satisfactionScore = 0.5; // Default neutral satisfaction
+        this.pinned = false;
+    }
+
+    public Lesson(String id, String subject, String teacher, String studentGroup,
+                  Double difficultyWeight, Double satisfactionScore, Integer durationHours) {
+        this(id, subject, teacher, studentGroup);
+        this.difficultyWeight = difficultyWeight;
+        this.satisfactionScore = satisfactionScore;
+        this.durationHours = durationHours;
     }
 
     // This constructor is only for tests
@@ -52,6 +76,14 @@ public class Lesson {
         return studentGroup;
     }
 
+    public Integer getDurationHours() {
+        return durationHours;
+    }
+
+    public void setDurationHours(Integer durationHours) {
+        this.durationHours = durationHours;
+    }
+
     public Timeslot getTimeslot() {
         return timeslot;
     }
@@ -66,6 +98,46 @@ public class Lesson {
 
     public void setRoom(Room room) {
         this.room = room;
+    }
+
+    public Double getDifficultyWeight() {
+        return difficultyWeight;
+    }
+
+    public void setDifficultyWeight(Double difficultyWeight) {
+        this.difficultyWeight = difficultyWeight;
+    }
+
+    public Double getSatisfactionScore() {
+        return satisfactionScore;
+    }
+
+    public void setSatisfactionScore(Double satisfactionScore) {
+        this.satisfactionScore = satisfactionScore;
+    }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public Timeslot getPinnedTimeslot() {
+        return pinnedTimeslot;
+    }
+
+    public void setPinnedTimeslot(Timeslot pinnedTimeslot) {
+        this.pinnedTimeslot = pinnedTimeslot;
+    }
+
+    public Room getPinnedRoom() {
+        return pinnedRoom;
+    }
+
+    public void setPinnedRoom(Room pinnedRoom) {
+        this.pinnedRoom = pinnedRoom;
     }
 
     @Override
