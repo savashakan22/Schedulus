@@ -97,11 +97,7 @@ export function ScheduleCalendar({ timetable, isLoading, onEventClick }: Schedul
             <FullCalendar
                 plugins={[dayGridPlugin, timeGridPlugin]}
                 initialView="timeGridWeek"
-                headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay',
-                }}
+                headerToolbar={false}
                 events={events}
                 eventContent={renderEventContent}
                 eventClick={(info) => {
@@ -116,7 +112,7 @@ export function ScheduleCalendar({ timetable, isLoading, onEventClick }: Schedul
                 slotDuration="00:30:00"
                 eventMinHeight={60}
                 nowIndicator={true}
-                dayHeaderFormat={{ weekday: 'short', month: 'numeric', day: 'numeric' }}
+                dayHeaderFormat={{ weekday: 'short' }}
             />
         </div>
     );

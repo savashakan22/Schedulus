@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScheduleCalendar } from './components/ScheduleCalendar';
 import { OptimizationPanel } from './components/OptimizationPanel';
 import { LessonList } from './components/LessonList';
@@ -22,25 +22,9 @@ function App() {
     const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
     const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => Boolean(localStorage.getItem('demo-auth')));
-    const [showLoginModal, setShowLoginModal] = useState<boolean>(() => !localStorage.getItem('demo-auth'));
-
-    useEffect(() => {
-        if (!isAuthenticated) {
-            setShowLoginModal(true);
-        }
-    }, [isAuthenticated]);
-
-    const requireAuth = (action: () => void) => {
-        if (!isAuthenticated) {
-            setShowLoginModal(true);
-            return;
-        }
-        action();
-    };
 
     const handleLoginSuccess = () => {
         setIsAuthenticated(true);
-        setShowLoginModal(false);
     };
 
     const handleEventClick = (lesson: Lesson) => {
@@ -48,31 +32,38 @@ function App() {
     };
 
     const handleTogglePin = (lessonId: string) => {
-        requireAuth(() => {
-            togglePin.mutate(lessonId);
-            if (selectedLesson?.id === lessonId) {
-                setSelectedLesson(prev => prev ? { ...prev, pinned: !prev.pinned } : null);
-            }
-        });
+        togglePin.mutate(lessonId);
+        if (selectedLesson?.id === lessonId) {
+            setSelectedLesson(prev => prev ? { ...prev, pinned: !prev.pinned } : null);
+        }
     };
 
     const handleAddLesson = (lesson: Omit<Lesson, 'id'>) => {
-        requireAuth(() => addLesson.mutate(lesson));
+        addLesson.mutate(lesson);
     };
 
     const handleRemoveLesson = (lessonId: string) => {
-        requireAuth(() => {
-            removeLesson.mutate(lessonId);
-            if (selectedLesson?.id === lessonId) {
-                setSelectedLesson(null);
-            }
-        });
+        removeLesson.mutate(lessonId);
+        if (selectedLesson?.id === lessonId) {
+            setSelectedLesson(null);
+        }
     };
 
     const lessonGroups = useMemo(
         () => Array.from(new Set((lessons ?? []).map(l => l.studentGroup))),
         [lessons]
     );
+
+    if (!isAuthenticated) {
+        return (
+            <Login
+                isOpen
+                onClose={() => {}}
+                onSuccess={handleLoginSuccess}
+                closable={false}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background">
@@ -89,32 +80,13 @@ function App() {
                                 <p className="text-xs text-muted-foreground">Smart University Course Scheduling</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            {!isAuthenticated && (
-                                <Button variant="outline" size="sm" onClick={() => setShowLoginModal(true)}>
-                                    <LogIn className="h-4 w-4 mr-2" />
-                                    Giriş Yap
-                                </Button>
-                            )}
-                        </div>
+                        <div className="flex items-center gap-4" />
                     </div>
                 </div>
             </header>
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-6 space-y-6">
-                {!isAuthenticated && (
-                    <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4 flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-sm font-medium text-foreground">Ana ekranı inceleyebilirsiniz.</p>
-                            <p className="text-xs text-muted-foreground">Herhangi bir işlem yapmadan önce lütfen giriş yapın.</p>
-                        </div>
-                        <Button size="sm" onClick={() => setShowLoginModal(true)}>
-                            <LogIn className="h-4 w-4 mr-2" /> Giriş yap
-                        </Button>
-                    </div>
-                )}
-
                 {/* Stats Section */}
                 <StatsCards timetable={timetable ?? undefined} isLoading={isLoadingSchedule} />
 
@@ -179,10 +151,8 @@ function App() {
                         <OptimizationPanel
                             job={job}
                             isStarting={isStarting}
-                            onStartOptimization={() => requireAuth(() => startOptimization())}
+                            onStartOptimization={() => startOptimization()}
                             onReset={reset}
-                            isAuthenticated={isAuthenticated}
-                            onRequireLogin={() => setShowLoginModal(true)}
                         />
                         <LessonList
                             lessons={lessons}
@@ -190,8 +160,6 @@ function App() {
                             onTogglePin={handleTogglePin}
                             onAddLesson={handleAddLesson}
                             onRemoveLesson={handleRemoveLesson}
-                            isAuthenticated={isAuthenticated}
-                            onRequireLogin={() => setShowLoginModal(true)}
                         />
                     </div>
                 </div>
@@ -284,12 +252,6 @@ function App() {
                     </Card>
                 </div>
             )}
-
-            <Login
-                isOpen={showLoginModal}
-                onClose={() => setShowLoginModal(false)}
-                onSuccess={handleLoginSuccess}
-            />
         </div>
     );
 }

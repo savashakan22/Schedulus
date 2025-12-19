@@ -6,9 +6,11 @@ interface LoginProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    containerRef?: React.RefObject<HTMLDivElement>;
+    closable?: boolean;
 }
 
-export function Login({ isOpen, onClose, onSuccess }: LoginProps) {
+export function Login({ isOpen, onClose, onSuccess, containerRef, closable = true }: LoginProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -26,12 +28,14 @@ export function Login({ isOpen, onClose, onSuccess }: LoginProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div ref={containerRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95">
                 <CardHeader>
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">Giriş Yap</CardTitle>
-                        <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Kapat</button>
+                        {closable && (
+                            <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Kapat</button>
+                        )}
                     </div>
                     <p className="text-sm text-muted-foreground">İşlem yapabilmek için giriş yapmalısınız.</p>
                 </CardHeader>
@@ -58,10 +62,14 @@ export function Login({ isOpen, onClose, onSuccess }: LoginProps) {
                             />
                         </div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
-                        <div className="flex gap-2">
-                            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Vazgeç</Button>
-                            <Button type="submit" className="flex-1">Devam Et</Button>
-                        </div>
+                        {closable ? (
+                            <div className="flex gap-2">
+                                <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Vazgeç</Button>
+                                <Button type="submit" className="flex-1">Devam Et</Button>
+                            </div>
+                        ) : (
+                            <Button type="submit" className="w-full">Giriş Yap</Button>
+                        )}
                     </form>
                 </CardContent>
             </Card>

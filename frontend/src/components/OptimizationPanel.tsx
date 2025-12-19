@@ -11,8 +11,6 @@ interface OptimizationPanelProps {
     isStarting: boolean;
     onStartOptimization: () => void;
     onReset: () => void;
-    isAuthenticated: boolean;
-    onRequireLogin: () => void;
 }
 
 export function OptimizationPanel({
@@ -20,8 +18,6 @@ export function OptimizationPanel({
     isStarting,
     onStartOptimization,
     onReset,
-    isAuthenticated,
-    onRequireLogin,
 }: OptimizationPanelProps) {
     const getStatusBadge = () => {
         if (!job) return null;
@@ -80,7 +76,7 @@ export function OptimizationPanel({
 
                 <div className="flex gap-2">
                     <Button
-                        onClick={() => isAuthenticated ? onStartOptimization() : onRequireLogin()}
+                        onClick={() => onStartOptimization()}
                         disabled={isStarting || isRunning}
                         className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500"
                     >
