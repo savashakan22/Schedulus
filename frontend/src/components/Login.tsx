@@ -2,10 +2,18 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 
-export function Login() {
+interface LoginProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+export function Login({ isOpen, onClose, onSuccess }: LoginProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -14,14 +22,18 @@ export function Login() {
             return;
         }
         localStorage.setItem('demo-auth', email);
-        window.location.reload();
+        onSuccess();
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-900 to-slate-950 text-white">
-            <Card className="w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95">
                 <CardHeader>
-                    <CardTitle className="text-center text-2xl">Schedulus Demo Login</CardTitle>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">Giriş Yap</CardTitle>
+                        <button onClick={onClose} className="text-sm text-muted-foreground hover:text-foreground">Kapat</button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">İşlem yapabilmek için giriş yapmalısınız.</p>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -46,7 +58,10 @@ export function Login() {
                             />
                         </div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
-                        <Button type="submit" className="w-full">Continue</Button>
+                        <div className="flex gap-2">
+                            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>Vazgeç</Button>
+                            <Button type="submit" className="flex-1">Devam Et</Button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>

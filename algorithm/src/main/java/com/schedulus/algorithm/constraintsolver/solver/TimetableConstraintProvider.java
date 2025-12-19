@@ -31,6 +31,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                 teacherConsecutiveLessons(constraintFactory),
                 timeslotPreference(constraintFactory),
                 compactDayScheduling(constraintFactory),
+                sameSubjectSameDayAvoidance(constraintFactory),
         };
     }
 
@@ -183,6 +184,19 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                     return gap <= 120 ? 3 : 1; // higher reward when they are closer (same half-day)
                 })
                 .asConstraint("Compact day scheduling");
+    }
+
+    /**
+     * Discourage scheduling the same subject more than once on the same day.
+     */
+    Constraint sameSubjectSameDayAvoidance(ConstraintFactory constraintFactory) {
+        return constraintFactory
+                .forEachUniquePair(Lesson.class,
+                        Joiners.equal(Lesson::getSubject),
+                        Joiners.equal(lesson -> lesson.getTimeslot() != null ? lesson.getTimeslot().getDayOfWeek() : null))
+                .filter((lesson1, lesson2) -> lesson1.getTimeslot() != null && lesson2.getTimeslot() != null)
+                .penalize(HardSoftScore.ofSoft(5))
+                .asConstraint("Avoid same subject twice per day");
     }
 
     // ========== HELPER METHODS ==========

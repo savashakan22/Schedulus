@@ -13,9 +13,11 @@ interface LessonListProps {
     onTogglePin: (lessonId: string) => void;
     onAddLesson?: (lesson: Omit<Lesson, 'id'>) => void;
     onRemoveLesson?: (lessonId: string) => void;
+    isAuthenticated: boolean;
+    onRequireLogin: () => void;
 }
 
-export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRemoveLesson }: LessonListProps) {
+export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRemoveLesson, isAuthenticated, onRequireLogin }: LessonListProps) {
     const [showAddForm, setShowAddForm] = useState(false);
     const [showImport, setShowImport] = useState(false);
     const [newLesson, setNewLesson] = useState({
@@ -101,6 +103,11 @@ export function LessonList({ lessons, isLoading, onTogglePin, onAddLesson, onRem
                             type="file"
                             accept=".xlsx"
                             onChange={e => {
+                                if (!isAuthenticated) {
+                                    onRequireLogin();
+                                    e.target.value = '';
+                                    return;
+                                }
                                 const file = e.target.files?.[0];
                                 if (file) {
                                     importLessons.mutate(file);
