@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: schedulus-postgres
+    environment:
+      POSTGRES_DB: schedulus
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ML Engine (Python FastAPI)
+  ml-engine:
+    build: ./ml-engine
+    container_name: schedulus-ml-engine
+    ports:
+      - "8082:8082"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main Backend (Python FastAPI)
+  main-backend:
+    build: ./main-backend
+    container_name: schedulus-main-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/schedulus
+      - ML_ENGINE_URL=http://ml-engine:8082
+      - ALGORITHM_API_URL=http://algorithm:8081
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ml-engine:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://main-backend:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Algorithm API (Java Spring Boot)
+  algorithm:
+    build: ./algorithm
+    container_name: schedulus-algorithm
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://main-backend/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend (React + Vite) - Dev mode
+  frontend:
+    build: ./frontend
+    container_name: schedulus-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://main-backend:8080
+    depends_on:
+      - main-backend
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: schedulus-network
