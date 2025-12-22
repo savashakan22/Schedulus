@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import { EventContentArg } from '@fullcalendar/core';
 import { Timetable, Lesson } from '../api/types';
 import { getDayLabel, getDayNumber, formatTimeFromDate, getClassColorClass } from '../lib/utils';
@@ -98,7 +99,7 @@ export function ScheduleCalendar({ timetable, isLoading, onEventClick, onEventDr
     return (
         <div className="schedule-calendar">
             <FullCalendar
-                plugins={[dayGridPlugin, timeGridPlugin]}
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
                 headerToolbar={false}
                 events={events}
