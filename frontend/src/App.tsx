@@ -23,6 +23,7 @@ function App() {
     const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
     const [localTimetable, setLocalTimetable] = useState<typeof timetable>(null);
     const [hasLocalEdits, setHasLocalEdits] = useState(false);
+    const [manualPlacements, setManualPlacements] = useState<Map<string, { timeslot: { dayOfWeek: string; startTime: string; endTime: string }; roomName?: string }>>(new Map());
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => Boolean(localStorage.getItem('demo-auth')));
 
     const handleLoginSuccess = () => {
@@ -64,6 +65,17 @@ function App() {
     }, [timetable, hasLocalEdits]);
 
     const handleEventDrop = (lesson: Lesson, timeslotUpdate: { dayOfWeek: string; startTime: string; endTime: string }) => {
+        // Store manual placement for optimizer
+        setManualPlacements(prev => {
+            const next = new Map(prev);
+            next.set(lesson.id, {
+                timeslot: timeslotUpdate,
+                roomName: lesson.room?.name,
+            });
+            return next;
+        });
+
+        // Update local timetable for immediate visual feedback
         setLocalTimetable(prev => {
             if (!prev) return prev;
             return {
@@ -85,6 +97,14 @@ function App() {
         });
         setHasLocalEdits(true);
     };
+
+    // Clear manual placements and local edits when job completes
+    useEffect(() => {
+        if (job?.status === 'COMPLETED') {
+            setManualPlacements(new Map());
+            setHasLocalEdits(false);
+        }
+    }, [job?.status]);
 
     if (!isAuthenticated) {
         return (
@@ -179,7 +199,7 @@ function App() {
                         <OptimizationPanel
                             job={job}
                             isStarting={isStarting}
-                            onStartOptimization={() => startOptimization()}
+                            onStartOptimization={() => startOptimization(manualPlacements)}
                             onReset={reset}
                         />
 

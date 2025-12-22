@@ -14,8 +14,14 @@ import type {
     Room,
 } from './types';
 
+// Manual placement type for lessons dragged by user
+export interface ManualPlacement {
+    timeslot: Timeslot;
+    roomName?: string;
+}
+
 // Default data for new optimization requests
-const DEFAULT_TIMESLOTS: Timeslot[] = [
+export const DEFAULT_TIMESLOTS: Timeslot[] = [
     // 2-hour morning blocks
     { dayOfWeek: 'MONDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 1.0 },
     { dayOfWeek: 'MONDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 1.0 },
@@ -87,26 +93,74 @@ export async function getSchedule(): Promise<Timetable | null> {
 }
 
 /**
+ * Find the index of a timeslot in DEFAULT_TIMESLOTS that matches the given timeslot.
+ * Returns -1 if no exact match is found.
+ */
+export function findTimeslotIndex(timeslot: { dayOfWeek: string; startTime: string; endTime: string }): number {
+    return DEFAULT_TIMESLOTS.findIndex(ts =>
+        ts.dayOfWeek === timeslot.dayOfWeek &&
+        ts.startTime === timeslot.startTime &&
+        ts.endTime === timeslot.endTime
+    );
+}
+
+/**
+ * Find the index of a room in DEFAULT_ROOMS that matches the given room name.
+ * Returns -1 if no match is found.
+ */
+export function findRoomIndex(roomName: string): number {
+    return DEFAULT_ROOMS.findIndex(r => r.name === roomName);
+}
+
+/**
  * Start a new optimization job.
  * Fetches current lessons from backend and uses default timeslots/rooms.
+ * @param manualPlacements - Map of lessonId to manually placed timeslot (from drag-drop)
  */
-export async function startOptimization(): Promise<OptimizationJob> {
+export async function startOptimization(
+    manualPlacements?: Map<string, ManualPlacement>
+): Promise<OptimizationJob> {
     // Get lessons from backend
     const lessons = await getLessons();
 
     const request: OptimizationRequest = {
         timeslots: DEFAULT_TIMESLOTS,
         rooms: DEFAULT_ROOMS,
-        lessons: lessons.map(lesson => ({
-            id: lesson.id,
-            subject: lesson.subject,
-            teacher: lesson.teacher,
-            studentGroup: lesson.studentGroup,
-            durationHours: lesson.durationHours ?? 2,
-            difficultyWeight: lesson.difficultyWeight,
-            satisfactionScore: lesson.satisfactionScore,
-            pinned: lesson.pinned,
-        })),
+        lessons: lessons.map(lesson => {
+            const placement = manualPlacements?.get(lesson.id);
+            let pinnedTimeslotIndex: number | undefined;
+            let pinnedRoomIndex: number | undefined;
+            let isPinned = lesson.pinned;
+
+            // If there's a manual placement, set pinned indices
+            if (placement) {
+                pinnedTimeslotIndex = findTimeslotIndex(placement.timeslot);
+                if (pinnedTimeslotIndex === -1) pinnedTimeslotIndex = undefined;
+
+                if (placement.roomName) {
+                    pinnedRoomIndex = findRoomIndex(placement.roomName);
+                    if (pinnedRoomIndex === -1) pinnedRoomIndex = undefined;
+                }
+
+                // Auto-pin if there's a valid placement
+                if (pinnedTimeslotIndex !== undefined) {
+                    isPinned = true;
+                }
+            }
+
+            return {
+                id: lesson.id,
+                subject: lesson.subject,
+                teacher: lesson.teacher,
+                studentGroup: lesson.studentGroup,
+                durationHours: lesson.durationHours ?? 2,
+                difficultyWeight: lesson.difficultyWeight,
+                satisfactionScore: lesson.satisfactionScore,
+                pinned: isPinned,
+                pinnedTimeslotIndex,
+                pinnedRoomIndex,
+            };
+        }),
         solverTimeLimitSeconds: 30,
     };
 

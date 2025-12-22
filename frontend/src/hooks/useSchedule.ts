@@ -140,13 +140,13 @@ export function useOptimizationJob(jobId: string | null) {
         }
 
         let isCancelled = false;
-        
+
         const pollStatus = async () => {
             try {
                 const status = await scheduleApi.getJobStatus(jobId);
                 if (!isCancelled) {
                     setJob(status);
-                    
+
                     // If job is still running, continue polling
                     if (status.status === 'RUNNING' || status.status === 'PENDING') {
                         setTimeout(pollStatus, 500);
@@ -180,9 +180,11 @@ export function useOptimizationWorkflow() {
     const job = useOptimizationJob(currentJobId);
     const queryClient = useQueryClient();
 
-    const startOptimization = useCallback(async () => {
+    const startOptimization = useCallback(async (
+        manualPlacements?: Map<string, { timeslot: { dayOfWeek: string; startTime: string; endTime: string }; roomName?: string }>
+    ) => {
         try {
-            const result = await startMutation.mutateAsync();
+            const result = await startMutation.mutateAsync(manualPlacements);
             setCurrentJobId(result.id);
         } catch (error) {
             console.error('Failed to start optimization:', error);
@@ -194,7 +196,7 @@ export function useOptimizationWorkflow() {
         if (job?.status === 'COMPLETED' && job.result) {
             // Sync lesson assignments from the result
             scheduleApi.syncLessonsFromTimetable(job.result);
-            
+
             // Invalidate queries to refresh UI
             queryClient.invalidateQueries({ queryKey: queryKeys.schedule });
             queryClient.invalidateQueries({ queryKey: queryKeys.lessons });
