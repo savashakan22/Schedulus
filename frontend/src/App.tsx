@@ -90,7 +90,7 @@ function App() {
         return (
             <Login
                 isOpen
-                onClose={() => {}}
+                onClose={() => { }}
                 onSuccess={handleLoginSuccess}
                 closable={false}
             />
@@ -155,7 +155,7 @@ function App() {
                                 {['ALL', ...lessonGroups].map(group => (
                                     <div key={group} className="flex items-center gap-1">
                                         <div className={`w-3 h-3 rounded ${getClassColorClass(group === 'ALL' ? 'ALL' : group)}`} />
-                                        <span className="text-muted-foreground">{group === 'ALL' ? 'All Classes' : group}</span>
+                                        <span className="text-muted-foreground">{group === '' ? '' : ""}</span>
                                     </div>
                                 ))}
                             </div>
@@ -221,25 +221,25 @@ function App() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-3">
-                               <div className="space-y-3">
-                                  <div className="text-sm">
-                                    <div className="flex items-center gap-3 text-muted-foreground">
-                                      <User className="h-4 w-4 shrink-0" />
-                                      <span className="shrink-0">Teacher:</span>
+                                <div className="space-y-3">
+                                    <div className="text-sm">
+                                        <div className="flex items-center gap-3 text-muted-foreground">
+                                            <User className="h-4 w-4 shrink-0" />
+                                            <span className="shrink-0">Teacher:</span>
+                                        </div>
+                                        <div className="pl-7 font-medium whitespace-normal break-all">
+                                            {selectedLesson.teacher}
+                                        </div>
                                     </div>
-                                    <div className="pl-7 font-medium whitespace-normal break-all">
-                                      {selectedLesson.teacher}
+                                    <div className="text-sm">
+                                        <div className="flex items-center gap-3 text-muted-foreground">
+                                            <Users className="h-4 w-4 shrink-0" />
+                                            <span className="shrink-0">Group:</span>
+                                        </div>
+                                        <div className="pl-7 font-medium whitespace-normal break-all">
+                                            {selectedLesson.studentGroup}
+                                        </div>
                                     </div>
-                                  </div>
-                                  <div className="text-sm">
-                                    <div className="flex items-center gap-3 text-muted-foreground">
-                                      <Users className="h-4 w-4 shrink-0" />
-                                      <span className="shrink-0">Group:</span>
-                                    </div>
-                                    <div className="pl-7 font-medium whitespace-normal break-all">
-                                      {selectedLesson.studentGroup}
-                                    </div>
-                                  </div>
                                 </div>
                                 {selectedLesson.room && (
                                     <div className="flex items-center gap-3 text-sm">

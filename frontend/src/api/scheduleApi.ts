@@ -5,9 +5,9 @@
  */
 
 import apiClient from './client';
-import type { 
-    Timetable, 
-    OptimizationJob, 
+import type {
+    Timetable,
+    OptimizationJob,
     OptimizationRequest,
     Lesson,
     Timeslot,
@@ -18,37 +18,42 @@ import type {
 const DEFAULT_TIMESLOTS: Timeslot[] = [
     // 2-hour morning blocks
     { dayOfWeek: 'MONDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 1.0 },
-    { dayOfWeek: 'MONDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.95 },
+    { dayOfWeek: 'MONDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 1.0 },
     // Lunch break 12:00 - 13:00
-    { dayOfWeek: 'MONDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.9 },
-    { dayOfWeek: 'MONDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.8 },
+    { dayOfWeek: 'MONDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 1.0 },
+    { dayOfWeek: 'MONDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 1.0 },
+    { dayOfWeek: 'MONDAY', startTime: '16:00', endTime: '18:00', preferenceBonus: 0.9 },
     // 3-hour options to support longer sessions
     { dayOfWeek: 'MONDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 1.0 },
-    { dayOfWeek: 'MONDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.85 },
-    { dayOfWeek: 'TUESDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 1.0 },
-    { dayOfWeek: 'TUESDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.95 },
-    { dayOfWeek: 'TUESDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.9 },
-    { dayOfWeek: 'TUESDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.8 },
-    { dayOfWeek: 'TUESDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 1.0 },
+    { dayOfWeek: 'MONDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 1.0 },
+    { dayOfWeek: 'TUESDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 0.85 },
+    { dayOfWeek: 'TUESDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.85 },
+    { dayOfWeek: 'TUESDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.85 },
+    { dayOfWeek: 'TUESDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.85 },
+    { dayOfWeek: 'TUESDAY', startTime: '15:00', endTime: '18:00', preferenceBonus: 0.85 },
+    { dayOfWeek: 'TUESDAY', startTime: '16:00', endTime: '18:00', preferenceBonus: 0.75 },
+    { dayOfWeek: 'TUESDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 0.85 },
     { dayOfWeek: 'TUESDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.85 },
-    { dayOfWeek: 'WEDNESDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 1.0 },
-    { dayOfWeek: 'WEDNESDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.95 },
-    { dayOfWeek: 'WEDNESDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.9 },
-    { dayOfWeek: 'WEDNESDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.8 },
-    { dayOfWeek: 'WEDNESDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 1.0 },
-    { dayOfWeek: 'WEDNESDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.85 },
-    { dayOfWeek: 'THURSDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 1.0 },
-    { dayOfWeek: 'THURSDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.95 },
-    { dayOfWeek: 'THURSDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.9 },
-    { dayOfWeek: 'THURSDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.8 },
-    { dayOfWeek: 'THURSDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 1.0 },
-    { dayOfWeek: 'THURSDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.85 },
-    { dayOfWeek: 'FRIDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 0.95 },
-    { dayOfWeek: 'FRIDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.9 },
-    { dayOfWeek: 'FRIDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.85 },
-    { dayOfWeek: 'FRIDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.75 },
-    { dayOfWeek: 'FRIDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 0.95 },
-    { dayOfWeek: 'FRIDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.8 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 0.7 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.7 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.7 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.7 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '15:00', endTime: '18:00', preferenceBonus: 0.7 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '16:00', endTime: '18:00', preferenceBonus: 0.6 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 0.7 },
+    { dayOfWeek: 'WEDNESDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.7 },
+    { dayOfWeek: 'THURSDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 0.35 },
+    { dayOfWeek: 'THURSDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.35 },
+    { dayOfWeek: 'THURSDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.25 },
+    { dayOfWeek: 'THURSDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.25 },
+    { dayOfWeek: 'THURSDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 0.35 },
+    { dayOfWeek: 'THURSDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.25 },
+    { dayOfWeek: 'FRIDAY', startTime: '08:00', endTime: '10:00', preferenceBonus: 0.1 },
+    { dayOfWeek: 'FRIDAY', startTime: '10:00', endTime: '12:00', preferenceBonus: 0.1 },
+    { dayOfWeek: 'FRIDAY', startTime: '13:00', endTime: '15:00', preferenceBonus: 0.1 },
+    { dayOfWeek: 'FRIDAY', startTime: '15:00', endTime: '17:00', preferenceBonus: 0.1 },
+    { dayOfWeek: 'FRIDAY', startTime: '08:00', endTime: '11:00', preferenceBonus: 0.1 },
+    { dayOfWeek: 'FRIDAY', startTime: '13:00', endTime: '16:00', preferenceBonus: 0.1 },
 ];
 
 const DEFAULT_ROOMS: Room[] = [
@@ -88,7 +93,7 @@ export async function getSchedule(): Promise<Timetable | null> {
 export async function startOptimization(): Promise<OptimizationJob> {
     // Get lessons from backend
     const lessons = await getLessons();
-    
+
     const request: OptimizationRequest = {
         timeslots: DEFAULT_TIMESLOTS,
         rooms: DEFAULT_ROOMS,
@@ -104,7 +109,7 @@ export async function startOptimization(): Promise<OptimizationJob> {
         })),
         solverTimeLimitSeconds: 30,
     };
-    
+
     const response = await apiClient.post<OptimizationJob>('/schedules/optimize', request);
     return response.data;
 }

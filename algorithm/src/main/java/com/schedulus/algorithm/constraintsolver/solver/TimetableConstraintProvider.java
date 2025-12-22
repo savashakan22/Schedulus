@@ -177,7 +177,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                 .forEachUniquePair(Lesson.class,
                         Joiners.equal(lesson -> lesson.getTimeslot() != null ? lesson.getTimeslot().getDayOfWeek() : null))
                 .filter((lesson1, lesson2) -> lesson1.getTimeslot() != null && lesson2.getTimeslot() != null)
-                .reward(HardSoftScore.ofSoft(1), (lesson1, lesson2) -> {
+                .reward(HardSoftScore.ofSoft(6), (lesson1, lesson2) -> {
                     long gap = Math.abs(java.time.Duration.between(
                             lesson1.getTimeslot().getEndTime(),
                             lesson2.getTimeslot().getStartTime()).toMinutes());
@@ -195,7 +195,7 @@ public class TimetableConstraintProvider implements ConstraintProvider {
                         Joiners.equal(Lesson::getSubject),
                         Joiners.equal(lesson -> lesson.getTimeslot() != null ? lesson.getTimeslot().getDayOfWeek() : null))
                 .filter((lesson1, lesson2) -> lesson1.getTimeslot() != null && lesson2.getTimeslot() != null)
-                .penalize(HardSoftScore.ofSoft(5))
+                .penalize(HardSoftScore.ofSoft(56))
                 .asConstraint("Avoid same subject twice per day");
     }
 
